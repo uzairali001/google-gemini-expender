@@ -3,7 +3,7 @@
 
   const maxExpandedWidth = "1200px";
   const maxInputExpandedWidth = "1000px";
-  const initializeDelay = 2000;
+  const initializeDelay = 5000;
 
   let isExpended = localStorage.getItem("expanded") === "true";
 
@@ -17,9 +17,7 @@
 
   function initialize() {
     inputContainer = document.querySelector(".input-area-container");
-    chatContainers = document.querySelectorAll(
-      ".conversation-container[_ngcontent-ng-c3849866955]"
-    );
+    chatContainers = document.querySelectorAll(".conversation-container");
     chatContainers.forEach((x) => {
       x.style.transition = "max-width 450ms ease";
     });
@@ -33,19 +31,14 @@
       const toolboxDrawer = document.querySelector("toolbox-drawer > div");
 
       expendButton = document.createElement("button");
-      expendButton.classList.add(
-        "mat-ripple",
-        "mat-mdc-tooltip-trigger",
-        "toolbox-drawer-item-button",
-        "gds-label-l",
-        "ng-star-inserted"
-      );
-      expendButton.setAttribute("_ngcontent-ng-c1900428411", "");
+      cloneAttributes(toolboxDrawer.querySelector("button"), expendButton);
+
       expendButton.addEventListener("click", () => {
         handleExpand(isExpended);
       });
 
       const icon = document.createElement("span");
+      // cloneAttributes(toolboxDrawer.querySelector("mat-icon"), icon);
       icon.classList.add(
         "mat-icon",
         "notranslate",
@@ -70,16 +63,18 @@
       expendButton.append(icon, btnText);
 
       const toolbarItem = document.createElement("toolbox-drawer-item");
-      toolbarItem.classList.add(
-        "mat-mdc-tooltip-trigger",
-        "toolbox-drawer-item-button",
-        "ng-tns-c1372242734-10",
-        "mat-mdc-tooltip-disabled",
-        "ng-star-inserted"
-      );
+      cloneAttributes(toolboxDrawer.querySelector("toolbox-drawer-item"), toolbarItem);
+
       toolbarItem.append(expendButton);
 
       toolboxDrawer.append(toolbarItem);
+    }
+  }
+
+  function cloneAttributes(fromElement, toElement) {
+    const srcAttributes = fromElement.attributes;
+    for (const {name, value} of srcAttributes) {
+      toElement.setAttribute(name, value);
     }
   }
 
@@ -102,7 +97,33 @@
     localStorage.setItem("expanded", expanded);
   }
 
-  setTimeout(function () {
-    initialize();
-  }, initializeDelay);
+  /**
+   * Continuously checks for a DOM element and calls a function when found,
+   * with an optional maximum wait time.
+   * @param {number} maxWaitTime - Maximum time (in milliseconds) to wait for the element.
+   */
+  function checkAndInitializeWithTimeout(maxWaitTime) {
+    const startTime = performance.now(); // Record the start time
+
+    function check() {
+      const targetElement = document.querySelector("toolbox-drawer toolbox-drawer-item button");
+      const currentTime = performance.now();
+
+      if (targetElement) {
+        initialize();
+      } else if (currentTime - startTime < maxWaitTime) {
+        // If the element is not found and within the time limit, check again
+        requestAnimationFrame(check);
+      } else {
+        console.warn(`Element not found within ${maxWaitTime}ms. Aborting check.`);
+      }
+    }
+
+    // Start the continuous checking
+    requestAnimationFrame(check);
+  }
+
+  // Example usage: Try to find the element for a maximum of 10 seconds (10000 milliseconds)
+  checkAndInitializeWithTimeout(10_000);
+
 })();
